@@ -13,4 +13,3 @@ RUN adduser --disabled-password crm_user
 RUN chown crm_user:crm_user -R /crm_partners_files/
 
 USER crm_user
-

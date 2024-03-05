@@ -173,3 +173,5 @@ LOGGING = {
 
 
 GENERATED_LINK_BASE_URL = 'http://localhost:3000/client/'
+
+BOT_TOKEN_CRM = environ.get('BOT_TOKEN_CRM')
