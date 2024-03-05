@@ -60,7 +60,7 @@ class CustomTokenObtainPairView(APIView):
 
             token_data = self.create_token(user)
             return Response(
-                {'tokenData': token_data},
+                {'userData': {'username': user.username}, 'tokenData': token_data},
                 status=status.HTTP_200_OK)
         except Exception as error:
             return Response({'error': str(error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

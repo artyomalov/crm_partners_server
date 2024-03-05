@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
     'user.apps.UserConfig',
     'link.apps.LinkConfig',
+    'client.apps.ClientConfig'
 
 ]
 
@@ -171,4 +172,4 @@ LOGGING = {
 }
 
 
-BASE_URL = 'http://localhost:8000'
+GENERATED_LINK_BASE_URL = 'http://localhost:3000/client/'
