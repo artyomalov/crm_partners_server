@@ -12,33 +12,9 @@ from .models import Client
 from link.models import Link
 from custom_exceptions.bad_request_exception import BadRequestError
 from django.conf import settings
-
-
-# chat_id={channel_id}&chat_type=private
-
-# URL = f'https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage?'
-#
-#
-# def send_msg(chat_id, text):
-#     url_req = "https://api.telegram.org/bot" + settings.BOT_TOKEN + "/sendMessage"
-#     params = {
-#         "chat_id": '886177470',
-#         "text": 'text'
-#     }
-#
-#     results = get(url=url_req, params=params)
-#     print(results.json())
-
-
-def send_msg(text, chat_id):
-    url_req = "https://api.telegram.org/bot" + settings.BOT_TOKEN_CRM + "/sendMessage"
-    params = {
-        "chat_id": chat_id,
-        "text": text
-    }
-
-    results = get(url=url_req, params=params)
-    print(results.json())
+from services.send_data_to_tg import send_data_to_tg
+from services.send_data_to_google_sheets import send_data_to_googlesheets
+from custom_exceptions.tg_data_has_not_been_send_exception import TgSendDataError
 
 
 class ClientList(APIView):
@@ -63,20 +39,34 @@ class ClientList(APIView):
             if not link_name:
                 raise BadRequestError('"linkName" has\'s not been provided')
 
-            text = f'Новый клиент:\n\
-                                    Имя: {request.data.get("fullName")}\n\
-                                    Телефон: {request.data.get("phoneNumber")}\n\
-                                    Телеграм: {request.data.get("tgUsername")}\n\
-                                    Комментарий: {request.data.get("comment")}'
+            name = request.data.get("fullName")
+            phone_numbger = request.data.get("phoneNumber")
+            tg_username = request.data.get("tgUsername")
+            comment = request.data.get("comment")
 
-            send_msg(text=text, chat_id=tg_channel_id)
+            text = f'Новый клиент:\n\
+                                    Имя: {name}\n\
+                                    Телефон: {phone_numbger}\n\
+                                    Телеграм: {tg_username}\n\
+                                    Комментарий: {comment}'
+
+            response = send_data_to_tg(text=text, chat_id=tg_channel_id)
+            if not response.get('ok'):
+                raise TgSendDataError('data hasn\'t been sent.')
+            # print(response)
+
+            data_to_send_to_googlesheets = [name, phone_numbger, tg_username, comment, ]
+            send_data_to_googlesheets(table_name=link.google_sheets_link, sending_data=data_to_send_to_googlesheets)
+
             serializer = ClientSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
-            return Response({'status': 'created'}, status=status.HTTP_200_OK)
+                return Response({'status': 'created'}, status=status.HTTP_200_OK)
 
             return Response(serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        except TgSendDataError as error:
+            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
         except BadRequestError as error:
             return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
