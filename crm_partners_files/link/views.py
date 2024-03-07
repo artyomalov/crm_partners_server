@@ -1,4 +1,5 @@
 from django.http import Http404
+from django.core.paginator import Paginator
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,6 +7,32 @@ from .serializers import LinkSerializer
 from django.conf import settings
 from .models import Link
 from custom_exceptions.bad_request_exception import BadRequestError
+
+
+class LinkList(APIView):
+    def get(self, request, format=None):
+        links_list = Link.objects.all()
+        paginator = Paginator(links_list, per_page=50)
+
+        serializer = LinkSerializer(paginator.page(1), many=True)
+
+        data = {
+            'links': serializer.data,
+            'pagesCount': paginator.num_pages,
+            'hasNext': paginator.page(1).has_next(),
+            'hasPrevious': paginator.page(1).has_previous(),
+            'page': 1,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def delete(self, request, format=None):
+        print(request.query_params.get('id').split(), 'lkjlikjkjkjkjkkjljl')
+
+        links_ids = [*request.query_params.get('id').split()]
+        links_queryset = Link.objects.filter(id__in=[*links_ids])
+        links_queryset.delete()
+        return Response({'linksIds': links_ids}, status=status.HTTP_200_OK)
 
 
 class LinkDetail(APIView):

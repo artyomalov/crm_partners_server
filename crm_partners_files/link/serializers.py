@@ -9,7 +9,7 @@ class LinkSerializer(serializers.Serializer):
     dealSource = serializers.CharField(source='deal_source')
     googleSheetsLink = serializers.CharField(source='google_sheets_link')
     generatedLink = serializers.CharField(source='generated_link')
-    sourceType = serializers.CharField(source='source_type')
+    category = serializers.CharField()
 
     def create(self, validated_data):
         return Link.objects.create(**validated_data)

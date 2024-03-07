@@ -7,7 +7,7 @@ class Link(models.Model):
     deal_source = models.CharField(max_length=255, verbose_name='Deal\'s source')
     google_sheets_link = models.CharField(max_length=255, verbose_name='Google sheets link')
     generated_link = models.CharField(max_length=255, verbose_name='Link')
-    source_type = models.CharField(max_length=255, verbose_name='Source of the link')
+    category = models.CharField(max_length=255, verbose_name='Link\'s category')
 
     def __str__(self):
         return self.generated_link

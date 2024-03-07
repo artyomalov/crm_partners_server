@@ -17,7 +17,7 @@ from services.send_data_to_google_sheets import send_data_to_googlesheets
 from custom_exceptions.tg_data_has_not_been_send_exception import TgSendDataError
 
 
-class ClientList(APIView):
+class ClientDetail(APIView):
     """
     Creates client's model instance and send client's data to TG and GoogleSheets
     """
