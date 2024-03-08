@@ -7,32 +7,58 @@ from .serializers import LinkSerializer
 from django.conf import settings
 from .models import Link
 from custom_exceptions.bad_request_exception import BadRequestError
+from services.get_links_list import get_links_list_data
 
 
 class LinkList(APIView):
+
     def get(self, request, format=None):
-        links_list = Link.objects.all()
-        paginator = Paginator(links_list, per_page=50)
+        """
+        Get filtered records from database according to filter value
+        :param request:
+        :param format:
+        :return: Response
+        """
 
-        serializer = LinkSerializer(paginator.page(1), many=True)
+        category = request.query_params.get('category')
+        page_number = request.query_params.get('page')
 
-        data = {
-            'links': serializer.data,
-            'pagesCount': paginator.num_pages,
-            'hasNext': paginator.page(1).has_next(),
-            'hasPrevious': paginator.page(1).has_previous(),
-            'page': 1,
-        }
+        data = get_links_list_data(page_number=page_number, category=category)
 
         return Response(data, status=status.HTTP_200_OK)
 
     def delete(self, request, format=None):
-        print(request.query_params.get('id').split(), 'lkjlikjkjkjkjkkjljl')
+        """
+        Gets list of links that must be deleted, selected category and
+        page number. Deletes selected links from database and returns
+        list of the remaining links, page number, selected category and pagination data.
+        :param request:
+        :param format:
+        :return: Response
+        """
+        delete_links_queryset = Link.objects.filter(id__in=[*request.query_params.get('id').split('-')])
+        delete_links_queryset.delete()
 
-        links_ids = [*request.query_params.get('id').split()]
-        links_queryset = Link.objects.filter(id__in=[*links_ids])
-        links_queryset.delete()
-        return Response({'linksIds': links_ids}, status=status.HTTP_200_OK)
+        category = request.query_params.get('category')
+        page_number = request.query_params.get('page')
+
+        data = get_links_list_data(page_number=page_number, category=category)
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class LinkSearch(APIView):
+    def get(self, request, format=None):
+        """
+         Get filtered records from database according to filter value
+        :param request:
+        :param format:
+        :return:
+        """
+        deal_source = request.query_params.get('dealSource')
+        data = get_links_list_data(deal_source=deal_source)
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class LinkDetail(APIView):
