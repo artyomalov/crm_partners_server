@@ -30,7 +30,7 @@ def send_data_to_googlesheets(table_name: str, sending_data: []):
     """
     Add data to existing table
     """
-
+    print(table_name, sending_data, '>>>>>>>>>>>>>>>>>>>>>>>>>>12')
     creds = None
     creds = service_account.Credentials.from_service_account_info(
         credentials_dict, )
@@ -52,5 +52,5 @@ def send_data_to_googlesheets(table_name: str, sending_data: []):
             .execute()
         )
         return result
-    except HttpError as err:
-        raise HttpError
+    except HttpError:
+        return None

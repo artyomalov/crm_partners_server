@@ -1,3 +1,6 @@
+__all__ = ['TgSendDataError', ]
+
+
 class TgSendDataError(Exception):
     def __init__(self, *args):
         if args:
@@ -7,6 +10,6 @@ class TgSendDataError(Exception):
 
     def __str__(self):
         if self.message:
-            return f'Telegram error, {self.message}'
+            return f'Telegram error: {self.message}'
         else:
-            return 'Telegram error'
+            return 'Telegram error.'

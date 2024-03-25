@@ -49,13 +49,13 @@ class CustomTokenObtainPairView(APIView):
             password = request.data.get('password')
             user = self.get_user(username=username)
             if user == None:
-                return Response({'error': 'User does not exist'},
+                return Response({'User does not exist'},
                                 status=status.HTTP_404_NOT_FOUND)
 
             hash = user.password
             is_validated = django_context.verify(password, hash)
             if not is_validated:
-                return Response({'error': 'Password is not valid'},
+                return Response({'Password is not valid'},
                                 status=status.HTTP_401_UNAUTHORIZED)
 
             token_data = self.create_token(user)

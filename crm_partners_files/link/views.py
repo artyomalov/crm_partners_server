@@ -1,13 +1,17 @@
+import time
+
+import services
+import custom_exceptions
 from django.http import Http404
 from django.core.paginator import Paginator
+from googleapiclient.errors import HttpError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .serializers import LinkSerializer
 from django.conf import settings
 from .models import Link
-from custom_exceptions.bad_request_exception import BadRequestError
-from services.get_links_list import get_links_list_data
+from django.db.utils import IntegrityError
 
 
 class LinkList(APIView):
@@ -23,7 +27,7 @@ class LinkList(APIView):
         category = request.query_params.get('category')
         page_number = request.query_params.get('page')
 
-        data = get_links_list_data(page_number=page_number, category=category)
+        data = services.get_links_list_data(page_number=page_number, category=category)
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -42,7 +46,7 @@ class LinkList(APIView):
         category = request.query_params.get('category')
         page_number = request.query_params.get('page')
 
-        data = get_links_list_data(page_number=page_number, category=category)
+        data = services.get_links_list_data(page_number=page_number, category=category)
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -56,7 +60,7 @@ class LinkSearch(APIView):
         :return:
         """
         deal_source = request.query_params.get('dealSource')
-        data = get_links_list_data(deal_source=deal_source)
+        data = services.get_links_list_data(deal_source=deal_source)
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -77,8 +81,21 @@ class LinkDetail(APIView):
         link_name = request.data.get('linkName')
         try:
             if not link_name:
-                raise BadRequestError('"linkName" has\'s not been provided')
+                raise custom_exceptions.BadRequestError('"linkName" has\'s not been provided')
 
+            # Validating google_sheets and tg fields correct completion
+            tg_response = services.send_data_to_tg(text='test', chat_id=request.data.get('tgChannelId'))
+            if not tg_response.get('ok'):
+                raise custom_exceptions.TgSendDataError(tg_response.get('description'))
+
+            data_to_send_to_googlesheets = ['test', 'test', 'test', 'test', ]
+            google_sheets_response = services.send_data_to_googlesheets(table_name=request.data.get('googleSheetsLink'),
+                                                                        sending_data=data_to_send_to_googlesheets)
+            print(google_sheets_response, '.......................................')
+            if not google_sheets_response:
+                raise custom_exceptions.GoogleSheetsTableNamingException('wrong table\'s name')
+
+            # Saving data to the database
             generated_link = settings.GENERATED_LINK_BASE_URL + link_name
 
             data = {
@@ -92,16 +109,24 @@ class LinkDetail(APIView):
                 return Response({
                     'generatedLink': serializer.data.get(
                         'generatedLink',
-                        'Что-то пошло не так. Пожалуйста, напишите администратору для решения этой проблемы.'
                     )
                 },
-                    status=status.HTTP_200_OK)
+                    status=status.HTTP_201_CREATED)
 
             return Response(serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except BadRequestError as error:
-            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+        except custom_exceptions.TgSendDataError as error:
+            return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
+        except custom_exceptions.GoogleSheetsTableNamingException as error:
+            return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
+        except custom_exceptions.BadRequestError as error:
+            return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
+        # IntegrityError for model's instance already exist
+        except IntegrityError as error:
+            return Response(str(error), status=status.HTTP_422_UNPROCESSABLE_ENTITY)
         except Exception as error:
-            return Response({'error': str(error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(str(error), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def delete(self, request, format=None):
         try:
@@ -110,5 +135,7 @@ class LinkDetail(APIView):
             link.delete()
             return Response({'linkId': link_id}, status=status.HTTP_200_OK)
 
+        except Http404 as error:
+            return Response(str(error), status=status.HTTP_404_NOT_FOUND)
         except Exception as error:
-            return Response({'error': str(error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(str(error), status=status.HTTP_500_INTERNAL_SERVER_ERROR)

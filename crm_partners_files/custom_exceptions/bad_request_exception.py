@@ -1,3 +1,6 @@
+__all__ = ['BadRequestError', ]
+
+
 class BadRequestError(Exception):
     def __init__(self, *args):
         if args:
@@ -7,6 +10,6 @@ class BadRequestError(Exception):
 
     def __str__(self):
         if self.message:
-            return f'No data error, {self.message}'
+            return f'No data error: {self.message}'
         else:
-            return 'No data error'
+            return 'No data error.'
